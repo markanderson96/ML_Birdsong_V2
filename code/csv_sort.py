@@ -29,7 +29,7 @@ def main():
     # Analyze data in dataset
     for row in data:
         # Assign image name and state to variables
-        image = '../data/spect/train/' + row[1] + '/' + row[0] + '.png'
+        image = '../data/train_spect/' + row[1] + '/' + row[0] + '.png'
         state = row[2]
 
         # Print image information
@@ -40,13 +40,13 @@ def main():
         if state == '0':
             # Attempt to move the file
             try:
-                copy2(image, '../data/spect/no_bird/' + row[1] + '/' + row[0] + '.png')
+                copy2(image, '../data/spect/no_bird/' + row[0] + '.png')
                 print('- Copy to no_bird')
             except FileNotFoundError:
                 print(' - Failed to find file')
         else:  # Attempt to move the file
             try:
-                copy2(image, '../data/spect/bird/' + row [1] + '/' + row[0] + '.png')
+                copy2(image, '../data/spect/bird/' + row[0] + '.png')
                 print(' - Copy to bird')
             except FileNotFoundError:
                 print(' - Failed to find file')

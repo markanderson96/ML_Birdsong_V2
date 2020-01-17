@@ -6,11 +6,14 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
 
+import pathlib
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_dir = '../data/spect'
+data_dir = pathlib.Path('../data/spect')
+
+CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
 
 DATASET_SIZE = 35690
 TRAIN_SIZE = int(0.8 * DATASET_SIZE) 
@@ -29,7 +32,7 @@ def decode_img(img):
 
 def extract_label(file_path):
     path = tf.strings.split(file_path, os.path.sep)
-    return path[-2]
+    return path[-2] == CLASS_NAMES
 
 def process_path(file_path):
     label = extract_label(file_path)
@@ -37,19 +40,19 @@ def process_path(file_path):
     img = decode_img(img)
     return img, label
 
-ds_list = tf.data.Dataset.list_files(str(data_dir+'/*/*'))
+ds_list = tf.data.Dataset.list_files(str(data_dir/'/*/*'))
 ds_labelled = ds_list.map(process_path, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-#ds_labelled = ds_labelled.shuffle(DATASET_SIZE)
+ds_labelled = ds_labelled.shuffle(DATASET_SIZE)
 ds_train = ds_labelled.take(TRAIN_SIZE)
 ds_val = ds_labelled.skip(TRAIN_SIZE)
 
 ds_train = ds_train.batch(BATCH_SIZE)
 ds_val = ds_val.batch(BATCH_SIZE)
 
-for image, label in ds_labelled.take(10):
-    print(image)
-    print(label)
+#for image, label in ds_labelled.take(10):
+#    print(image)
+#    print(label)
 
 model = Sequential([
     Conv2D(16, 2, padding='same', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 1)),
