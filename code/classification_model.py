@@ -5,62 +5,56 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-import pathlib
+tf.executing_eagerly()
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
-data_dir = pathlib.Path('../data/spect')
-
-CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
 
 DATASET_SIZE = 35690
 TRAIN_SIZE = int(0.8 * DATASET_SIZE) 
 VAL_SIZE = int(0.2 * DATASET_SIZE)
 
 IMAGE_HEIGHT = 160
-IMAGE_WIDTH = 998
+IMAGE_WIDTH = 1000
 
-BATCH_SIZE = 128
-EPOCHS = 10
+BATCH_SIZE = 64
+epochs = 10
 
-def decode_img(img):
-    img = tf.image.decode_png(img, channels=1)
-    img = tf.image.convert_image_dtype(img, tf.float32)
-    return img
+data_dir = '../data/spect'
 
-def extract_label(file_path):
-    path = tf.strings.split(file_path, os.path.sep)
-    return path[-2] == CLASS_NAMES
+image_generator = ImageDataGenerator(validation_split=0.2, rescale=1./255)
 
-def process_path(file_path):
-    label = extract_label(file_path)
-    img = tf.io.read_file(file_path)
-    img = decode_img(img)
-    return img, label
+train_gen = image_generator.flow_from_directory(
+    batch_size=BATCH_SIZE,
+    directory=data_dir,
+    target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
+    shuffle=True,
+    subset='training',
+    class_mode='binary'
+)
 
-ds_list = tf.data.Dataset.list_files(str(data_dir/'/*/*'))
-ds_labelled = ds_list.map(process_path, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-ds_labelled = ds_labelled.shuffle(DATASET_SIZE)
-ds_train = ds_labelled.take(TRAIN_SIZE)
-ds_val = ds_labelled.skip(TRAIN_SIZE)
-
-ds_train = ds_train.batch(BATCH_SIZE)
-ds_val = ds_val.batch(BATCH_SIZE)
-
-#for image, label in ds_labelled.take(10):
-#    print(image)
-#    print(label)
+val_gen = image_generator.flow_from_directory(
+    batch_size=BATCH_SIZE,
+    directory=data_dir,
+    target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
+    shuffle=True,
+    subset='validation',
+    class_mode='binary'
+)
 
 model = Sequential([
-    Conv2D(16, 2, padding='same', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 1)),
+    Conv2D(16, 3, padding='same', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 3)),
     MaxPooling2D(),
+    Dropout(0.2),
     Conv2D(32, 3, padding='same', activation='relu'),
     MaxPooling2D(),
+    Dropout(0.2),
     Conv2D(64, 3, padding='same', activation='relu'),
     MaxPooling2D(),
+    Dropout(0.2),
     Flatten(),
     Dense(128, activation='relu'),
     Dense(1, activation='sigmoid')
@@ -70,10 +64,10 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 model.summary()
 
 history = model.fit(
-        ds_train.repeat(), 
+        train_gen, 
         steps_per_epoch=(TRAIN_SIZE//BATCH_SIZE),
-        epochs=EPOCHS, 
-        validation_data=ds_val.repeat(), 
+        epochs=epochs, 
+        validation_data=val_gen, 
         validation_steps=(VAL_SIZE//BATCH_SIZE)
 )
 
