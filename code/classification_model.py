@@ -9,6 +9,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 tf.executing_eagerly()
 
+from datetime import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,8 +21,8 @@ VAL_SIZE = int(0.2 * DATASET_SIZE)
 IMAGE_HEIGHT = 160
 IMAGE_WIDTH = 1000
 
-BATCH_SIZE = 64
-epochs = 10
+BATCH_SIZE = 128
+epochs = 12
 
 data_dir = '../data/spect'
 
@@ -45,22 +46,27 @@ val_gen = image_generator.flow_from_directory(
     class_mode='binary'
 )
 
+logdir = "../logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+
 model = Sequential([
-    Conv2D(16, 3, padding='same', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 3)),
+    Conv2D(16, 5, padding='valid', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 3)),
     MaxPooling2D(),
-    Dropout(0.2),
-    Conv2D(32, 3, padding='same', activation='relu'),
+    Dropout(0.1),
+    Conv2D(32, 5, padding='valid', activation='relu'),
     MaxPooling2D(),
-    Dropout(0.2),
-    Conv2D(64, 3, padding='same', activation='relu'),
+    Dropout(0.1),
+    Conv2D(64, 5, padding='valid', activation='relu'),
     MaxPooling2D(),
-    Dropout(0.2),
+    Dropout(0.1),
+    Conv2D(128, 5, padding='valid', activation='relu'),
+    MaxPooling2D(),
     Flatten(),
-    Dense(128, activation='relu'),
+    Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(l=0.001)),
     Dense(1, activation='sigmoid')
 ])
 
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', tf.keras.metrics.AUC()])
 model.summary()
 
 history = model.fit(
@@ -68,8 +74,12 @@ history = model.fit(
         steps_per_epoch=(TRAIN_SIZE//BATCH_SIZE),
         epochs=epochs, 
         validation_data=val_gen, 
-        validation_steps=(VAL_SIZE//BATCH_SIZE)
+        validation_steps=(VAL_SIZE//BATCH_SIZE),
+        callbacks=[tensorboard_callback]
 )
+
+filename = datetime.now().strftime("%d%m%Y-%H%M%S") + '.h5'
+model.save('../' + filename)
 
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']

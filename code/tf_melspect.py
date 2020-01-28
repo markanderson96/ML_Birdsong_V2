@@ -47,7 +47,7 @@ def main():
     sample_rate = tf.cast(sample_rate, tf.float32) # cast sr as float (needed for mel weighting)
     hop = int(sample_rate/frame_rate) # Calculate frame step
 
-    stfts = tf.signal.stft(waveform, frame_length, hop) # take stft and absolute
+    stfts = tf.signal.stft(waveform, frame_length, hop, window_fn=tf.signal.hann_window) # take stft and absolute
     spectrograms = tf.abs(stfts)
 
     num_fft_bins = stfts.shape[-1] # num fft bins
@@ -66,7 +66,7 @@ def main():
     out = tf.cast(transposed, tf.uint8)
     
     # Write out PNG of Spectrogram
-    tf.io.write_file(output_file, tf.image.encode_png(out))
+    tf.io.write_file(output_file, tf.image.encode_png(out, compression=0)
 
 if __name__=="__main__":
 	main()
