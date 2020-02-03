@@ -17,6 +17,7 @@ def opts_parser():
     parser.add_argument('-b', '--bands', type=int, default=80)
     parser.add_argument('-m', '--min-freq', type=float, default=100)
     parser.add_argument('-M', '--max-freq', type=float, default=16000)
+    parser.add_argument('-t', '--type', type=str, default='mel')
 
     return parser
 
@@ -33,6 +34,7 @@ def main():
     mel_bands = args.bands
     min_freq = args.min_freq
     max_freq = args.max_freq
+    spect_type = args.type
    
     # Executes eagerly by default
     tf.executing_eagerly()
@@ -49,13 +51,18 @@ def main():
 
     stfts = tf.signal.stft(waveform, frame_length, hop, window_fn=tf.signal.hann_window) # take stft and absolute
     spectrograms = tf.abs(stfts)
+    
+    if (spect_type == 'mel'):
+        print('Making Mel Specrogram')
+        num_fft_bins = stfts.shape[-1] # num fft bins
+        mel_weights = tf.signal.linear_to_mel_weight_matrix(mel_bands, num_fft_bins, sample_rate, min_freq, max_freq) # create filterbank
+        spect = tf.tensordot(spectrograms, mel_weights, 1) # apply to stft
+        #mel_spectrogram.set_shape(spectrograms.shape[:-1].concatenate(mel_weights.shape[-1:]))
+    else:
+        print('Making Linear Spectrogram')
+        spect = spectrograms
 
-    num_fft_bins = stfts.shape[-1] # num fft bins
-    mel_weights = tf.signal.linear_to_mel_weight_matrix(mel_bands, num_fft_bins, sample_rate, min_freq, max_freq) # create filterbank
-    mel_spectrogram = tf.tensordot(spectrograms, mel_weights, 1) # apply to stft
-    #mel_spectrogram.set_shape(spectrograms.shape[:-1].concatenate(mel_weights.shape[-1:]))
-
-    mul = tf.multiply(mel_spectrogram, 64) # Change this to normalisation
+    mul = tf.multiply(spect, 64) # Change this to normalisation
     expanded = tf.expand_dims(mul, -1) # Needed to create image
 
     # Spectrogram is backwars and axes swapped, below code fixes this
@@ -66,7 +73,7 @@ def main():
     out = tf.cast(transposed, tf.uint8)
     
     # Write out PNG of Spectrogram
-    tf.io.write_file(output_file, tf.image.encode_png(out, compression=0)
+    tf.io.write_file(output_file, tf.image.encode_png(out, compression=0))
 
 if __name__=="__main__":
 	main()
