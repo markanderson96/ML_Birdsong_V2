@@ -6,18 +6,21 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from scipy import signal
 
 def opts_parser():
     parser = argparse.ArgumentParser()
     
     parser.add_argument('-i', '--input', type=str, required=True)
     parser.add_argument('-o', '--output', type=str, required=True)
-    parser.add_argument('-f', '--frame-rate', type=float, default=100)
-    parser.add_argument('-l', '--frame-length', type=int, default=1024)
+    parser.add_argument('-f', '--frame_rate', type=float, default=100)
+    parser.add_argument('-O', '--overlap', type=int, default=50)
     parser.add_argument('-b', '--bands', type=int, default=80)
     parser.add_argument('-m', '--min-freq', type=float, default=100)
     parser.add_argument('-M', '--max-freq', type=float, default=16000)
     parser.add_argument('-t', '--type', type=str, default='mel')
+    parser.add_argument('-d', '--downsample', type=int)
+    parser.add_argument('-p', '--preemphasis', action="store_true")
 
     return parser
 
@@ -30,11 +33,13 @@ def main():
     audio_path = args.input
     output_file = args.output
     frame_rate = args.frame_rate
-    frame_length = args.frame_length
+    overlap = args.overlap
     mel_bands = args.bands
     min_freq = args.min_freq
     max_freq = args.max_freq
     spect_type = args.type
+    downsample = args.downsample
+    preemphasis = args.preemphasis
    
     # Executes eagerly by default
     tf.executing_eagerly()
@@ -47,6 +52,23 @@ def main():
     waveform = waveform.reshape(waveform.shape[0])
 
     sample_rate = tf.cast(sample_rate, tf.float32) # cast sr as float (needed for mel weighting)
+    
+    if (downsample):
+        waveform = signal.decimate(waveform, downsample)
+        sample_rate = sample_rate//downsample
+        print(sample_rate)
+
+    frame_length = int((sample_rate/frame_rate) * (1 + overlap/100))
+
+    if (spect_type == 'linear'):
+        Wl = min_freq / (sample_rate//2)
+        Wh = max_freq / (sample_rate//2)
+        b, a = signal.cheby2(4, 40, [Wl, Wh], 'bandpass')
+        waveform = signal.lfilter(b, a, waveform)
+    
+    if (preemphasis):
+        waveform = signal.lfilter([1, -0.95], 1, waveform)
+
     hop = int(sample_rate/frame_rate) # Calculate frame step
 
     stfts = tf.signal.stft(waveform, frame_length, hop, window_fn=tf.signal.hann_window) # take stft and absolute
