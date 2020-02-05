@@ -75,7 +75,7 @@ def main():
     spectrograms = tf.abs(stfts)
     
     if (spect_type == 'mel'):
-        print('Making Mel Specrogram')
+        print('Making Mel Spectrogram')
         num_fft_bins = stfts.shape[-1] # num fft bins
         mel_weights = tf.signal.linear_to_mel_weight_matrix(mel_bands, num_fft_bins, sample_rate, min_freq, max_freq) # create filterbank
         spect = tf.tensordot(spectrograms, mel_weights, 1) # apply to stft
