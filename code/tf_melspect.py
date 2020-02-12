@@ -11,6 +11,7 @@ from scipy import signal
 def opts_parser():
     parser = argparse.ArgumentParser()
     
+    # Arguments and flags
     parser.add_argument('-i', '--input', type=str, required=True)
     parser.add_argument('-o', '--output', type=str, required=True)
     parser.add_argument('-f', '--frame_rate', type=float, default=100)
@@ -21,8 +22,14 @@ def opts_parser():
     parser.add_argument('-t', '--type', type=str, default='mel')
     parser.add_argument('-d', '--downsample', type=int)
     parser.add_argument('-p', '--preemphasis', action="store_true")
+    parser.add_argument('--filter', action='store_true')
 
     return parser
+
+def log10(x):
+    n = tf.math.log(x)
+    d = tf.math.log(tf.constant(10, dtype=n.dtype))
+    return(tf.divide(n,d))
 
 def main():
     # Pasrse options
@@ -40,10 +47,11 @@ def main():
     spect_type = args.type
     downsample = args.downsample
     preemphasis = args.preemphasis
+    use_filter = args.filter
    
     # Executes eagerly by default
     tf.executing_eagerly()
-    print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU'))) # TODO Make use of GPU more
+    print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     audio_file = tf.io.read_file(audio_path) # read audio file
     waveform, sample_rate = tf.audio.decode_wav(audio_file) # decode wav
@@ -56,22 +64,23 @@ def main():
     if (downsample):
         waveform = signal.decimate(waveform, downsample)
         sample_rate = sample_rate//downsample
-        print(sample_rate)
 
     frame_length = int((sample_rate/frame_rate) * (1 + overlap/100))
 
-    if (spect_type == 'linear'):
+    # If using filtering
+    if (spect_type == 'linear' and use_filter):
         Wl = min_freq / (sample_rate//2)
         Wh = max_freq / (sample_rate//2)
         b, a = signal.cheby2(4, 40, [Wl, Wh], 'bandpass')
         waveform = signal.lfilter(b, a, waveform)
     
+    # If Preemphasis flag set
     if (preemphasis):
-        waveform = signal.lfilter([1, -0.95], 1, waveform)
+        waveform = signal.lfilter([1, -0.97], 1, waveform)
 
     hop = int(sample_rate/frame_rate) # Calculate frame step
 
-    stfts = tf.signal.stft(waveform, frame_length, hop, window_fn=tf.signal.hann_window) # take stft and absolute
+    stfts = tf.signal.stft(waveform, frame_length, hop, window_fn=tf.signal.hann_window, pad_end=True) # take stft and absolute
     spectrograms = tf.abs(stfts)
     
     if (spect_type == 'mel'):
@@ -79,13 +88,19 @@ def main():
         num_fft_bins = stfts.shape[-1] # num fft bins
         mel_weights = tf.signal.linear_to_mel_weight_matrix(mel_bands, num_fft_bins, sample_rate, min_freq, max_freq) # create filterbank
         spect = tf.tensordot(spectrograms, mel_weights, 1) # apply to stft
-        #mel_spectrogram.set_shape(spectrograms.shape[:-1].concatenate(mel_weights.shape[-1:]))
     else:
         print('Making Linear Spectrogram')
         spect = spectrograms
 
-    mul = tf.multiply(spect, 64) # Change this to normalisation
-    expanded = tf.expand_dims(mul, -1) # Needed to create image
+    # Log sacling and normalisation for image
+    #spect = 10 * log10(tf.math.maximum(spect, 1E-06))
+    spect = tf.math.divide(
+               tf.math.subtract(spect, tf.math.reduce_min(spect)),
+               tf.math.subtract(tf.math.reduce_max(spect), tf.math.reduce_min(spect))
+        )
+    spect = tf.multiply(spect, 255) # Change this to normalisation
+    
+    expanded = tf.expand_dims(spect, -1) # Needed to create image
 
     # Spectrogram is backwars and axes swapped, below code fixes this
     flipped = tf.image.flip_left_right(expanded)
