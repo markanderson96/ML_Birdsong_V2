@@ -9,7 +9,7 @@ def opts_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i', '--input', type=str, required=True)
-    parser.add_argument('-t', '--type', type=str, required=True)
+    parser.add_argument('-d', '--dir', type=str, required=True)
     return parser
 
 def main():
@@ -29,7 +29,7 @@ def main():
     # Analyze data in dataset
     for row in data:
         # Assign image name and state to variables
-        image = '../data/train_spect/' + args.type + '/' + row[1] + '/' + row[0] + '.png'
+        image = args.dir + '/' + row[1] + '/' + row[0] + '.png'
         state = row[2]
 
         # Print image information
@@ -40,13 +40,13 @@ def main():
         if state == '0':
             # Attempt to move the file
             try:
-                copy2(image, '../data/spect/' + args.type  + '/no_bird/' + row[0] + '.png')
+                copy2(image, '../data/spect/no_bird/' + row[0] + '.png')
                 print('- Copy to no_bird')
             except FileNotFoundError:
                 print(' - Failed to find file')
         else:  # Attempt to move the file
             try:
-                copy2(image, '../data/spect/' + args.type + '/bird/' + row[0] + '.png')
+                copy2(image, '../data/spect/bird/' + row[0] + '.png')
                 print(' - Copy to bird')
             except FileNotFoundError:
                 print(' - Failed to find file')
