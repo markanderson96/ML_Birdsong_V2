@@ -18,9 +18,10 @@ import matplotlib.pyplot as plt
 def opts_parser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-t', '--type', type=str, default='mel')
+    parser.add_argument('-t', '--type', type=str, default='linear')
     parser.add_argument('-lr', '--learning-rate', type=float, default=0.001)
-    
+    parser.add_argument('-e', '--epochs', type=int, default=20)
+
     return parser
 
 def main():
@@ -29,23 +30,22 @@ def main():
 
     spect_type = args.type
     learning_rate = args.learning_rate
+    epochs = args.epochs
 
     DATASET_SIZE = 35690
     TRAIN_SIZE = int(0.8 * DATASET_SIZE) 
     VAL_SIZE = int(0.2 * DATASET_SIZE)
 
+    data_dir = '../data/spect'
+
     if spect_type == 'linear':
-        IMAGE_HEIGHT = 513
-        IMAGE_WIDTH = 998
+        IMAGE_HEIGHT = 257
+        IMAGE_WIDTH = 1000
         BATCH_SIZE = 64
-        epochs = 20
-        data_dir = '../data/spect/linear'
     else:
         IMAGE_HEIGHT = 160
         IMAGE_WIDTH = 998
         BATCH_SIZE = 64
-        epochs = 20
-        data_dir = '../data/spect/mel'
 
     image_generator = ImageDataGenerator(validation_split=0.2, rescale=1./255)
 
