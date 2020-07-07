@@ -19,6 +19,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import crnn
 
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
 def opts_parser():
     parser = argparse.ArgumentParser()
 
@@ -45,7 +47,7 @@ def main():
     if spect_type == 'linear':
         IMAGE_HEIGHT = 257
         IMAGE_WIDTH = 1000
-        BATCH_SIZE = 128
+        BATCH_SIZE = 1 
     else:
         IMAGE_HEIGHT = 160
         IMAGE_WIDTH = 998
