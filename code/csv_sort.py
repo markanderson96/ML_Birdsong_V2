@@ -40,13 +40,13 @@ def main():
         if state == '0':
             # Attempt to move the file
             try:
-                copy2(image, '../data/spect/no_bird/' + row[0] + '.png')
+                copy2(image, '../data/no_bird/' + row[0] + '.png')
                 print('- Copy to no_bird')
             except FileNotFoundError:
                 print(' - Failed to find file')
         else:  # Attempt to move the file
             try:
-                copy2(image, '../data/spect/bird/' + row[0] + '.png')
+                copy2(image, '../data/bird/' + row[0] + '.png')
                 print(' - Copy to bird')
             except FileNotFoundError:
                 print(' - Failed to find file')

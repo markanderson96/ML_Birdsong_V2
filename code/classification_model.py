@@ -36,18 +36,13 @@ def main():
     TRAIN_SIZE = int(0.8 * DATASET_SIZE) 
     VAL_SIZE = int(0.2 * DATASET_SIZE)
 
-    data_dir = '../data/spect'
+    data_dir = '../data'
 
-    if spect_type == 'linear':
-        IMAGE_HEIGHT = 257
-        IMAGE_WIDTH = 1000
-        BATCH_SIZE = 64
-    else:
-        IMAGE_HEIGHT = 160
-        IMAGE_WIDTH = 998
-        BATCH_SIZE = 64
+    IMAGE_HEIGHT = 257
+    IMAGE_WIDTH = 1000
+    BATCH_SIZE = 32
 
-    image_generator = ImageDataGenerator(validation_split=0.2, rescale=1./255)
+    image_generator = ImageDataGenerator(validation_split=0.2, rescale=1./65535)
 
     train_gen = image_generator.flow_from_directory(
         batch_size=BATCH_SIZE,
@@ -62,7 +57,6 @@ def main():
         batch_size=BATCH_SIZE,
         directory=data_dir,
         target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
-        shuffle=True,
         subset='validation',
         class_mode='binary'
     )
@@ -74,16 +68,16 @@ def main():
         Conv2D(16, 5, padding='valid', activation='relu', input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 3)),
         MaxPooling2D(),
         Dropout(0.2),
-        Conv2D(32, 5, padding='valid', activation='relu'),
-        MaxPooling2D(),
-        Dropout(0.2),
         Conv2D(64, 5, padding='valid', activation='relu'),
         MaxPooling2D(),
         Dropout(0.2),
-        Conv2D(128, 5, padding='valid', activation='relu'),
+        Conv2D(128, 3, padding='valid', activation='relu'),
+        MaxPooling2D(),
+        Dropout(0.2),
+        Conv2D(256, 3, padding='valid', activation='relu'),
         MaxPooling2D(),
         Flatten(),
-        Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(l=learning_rate)),
+        Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(l=learning_rate)),
         Dropout(0.2),
         Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(l=learning_rate)),
         Dense(1, activation='sigmoid')
