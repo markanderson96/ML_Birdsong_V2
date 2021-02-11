@@ -26,11 +26,11 @@ requirements: test_environment
 
 ## Make Dataset
 data: 
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/interim data/processed
+	$(PYTHON_INTERPRETER) src/data/data_convert.py data/raw data/interim
 
 ## Make features
 features: 
-	$(PYTHON_INTERPRETER) src/features/build_features.py
+	$(PYTHON_INTERPRETER) src/features/tf_melspect.py data/interim data/interim
 
 ## Train Model
 train: 
