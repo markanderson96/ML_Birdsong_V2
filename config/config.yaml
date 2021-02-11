@@ -1,0 +1,17 @@
+general:
+  dataset: nips4b
+
+feature_creation:
+  window_len: 0.01
+  overlap_len: 0.005
+  num_bands: 80
+  min_freq: 800
+  max_freq: 16000
+  filter: True
+  spect_type: linear
+  downsample: 0
+  preemphasis: True
+
+classifier:
+  learning_rate: 0.001
+  epochs: 10
